@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}404 - Page Not Found | CareConnect{% endblock %}
+
+{% block container_class %}body-centered{% endblock %}
+
+{% block content %}
+    <div class="glass-card animate-fade-in" style="max-width: 500px; text-align: center;">
+        <i class="ph-bold ph-warning" style="font-size: 5rem; color: var(--danger); margin-bottom: 2rem;"></i>
+        <h1 class="outfit" style="font-size: 3.5rem; margin-bottom: 1rem;">404</h1>
+        <h3 style="margin-bottom: 1.5rem; color: var(--text-muted);">The page you're looking for doesn't exist.</h3>
+        <p style="margin-bottom: 2.5rem;">The health records you're seeking may have moved or were never here.</p>
+        <a href="/" class="btn btn-primary" style="padding: 1.2rem 2.5rem;">Return Home <i class="ph ph-house"></i></a>
+    </div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-container">
+    <aside class="sidebar glass-card outfit">
+        <div class="logo" style="margin-bottom: 2rem;"><i class="ph-bold ph-heartbeat"></i> <span>Doctor</span>Portal</div>
+        <nav class="sidebar-menu">
+            <a href="/dashboard/doctor" class="sidebar-item"><i class="ph ph-users-three"></i> Patients List</a>
+            <a href="/doctor/schedule" class="sidebar-item"><i class="ph ph-calendar-bold"></i> Today's Schedule</a>
+            <a href="/doctor/consultations" class="sidebar-item active"><i class="ph ph-note-pencil"></i> Consultations</a>
+            <a href="/doctor/video" class="sidebar-item"><i class="ph ph-video-camera"></i> Video Room</a>
+        </nav>
+        <div style="margin-top: auto;"><a href="/login" class="btn btn-outline" style="width: 100%;">Logout</a></div>
+    </aside>
+    <main class="dashboard-content">
+        <header class="section-header outfit">
+            <div>
+                <h1>My <span>Consultations</span></h1>
+                <p style="color: var(--text-muted);">Add notes — patient and family are notified instantly.</p>
+            </div>
+        </header>
+
+        <div class="glass-card" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;">Active Waiting Room</h3>
+            <div style="background: var(--surface); border: 1px solid var(--primary); padding: 2rem; text-align: center; border-radius: 16px;">
+                <i class="ph ph-video-camera" style="font-size: 4rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                <h3 style="margin-bottom: 0.5rem;">Patient: William Roberts</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Waiting in virtual room...</p>
+                <a href="/doctor/video" class="btn btn-primary" style="padding: 1rem 3rem; font-size: 1.1rem;"><i class="ph-fill ph-phone-call"></i> Start Session</a>
+            </div>
+        </div>
+
+        <!-- Add Consultation Note — notifies patient & children -->
+        <div class="glass-card" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;">Add Consultation Note <span style="font-size:0.85rem; color:var(--accent); font-weight:400;">→ Notifies Patient &amp; Children</span></h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                    <label style="font-size:0.9rem; color:var(--text-muted);">Patient Name</label>
+                    <input id="n-patient" type="text" placeholder="e.g., George Smith" style="padding:0.9rem; background:var(--surface); border:1px solid var(--surface-border); border-radius:12px; color:white;">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                    <label style="font-size:0.9rem; color:var(--text-muted);">Your Name</label>
+                    <input id="n-doctor" type="text" placeholder="e.g., Dr. Sarah Jenkins" style="padding:0.9rem; background:var(--surface); border:1px solid var(--surface-border); border-radius:12px; color:white;">
+                </div>
+            </div>
+            <textarea id="n-note" placeholder="Enter your clinical note or recommendation here..." style="width:100%; padding:1rem; background:var(--surface); border:1px solid var(--surface-border); border-radius:12px; color:white; font-size:0.95rem; resize:vertical; min-height:100px; box-sizing:border-box;"></textarea>
+            <button onclick="addNote()" class="btn btn-primary" style="margin-top:1rem; width:100%; padding:1rem;"><i class="ph ph-paper-plane-right"></i> Send Note to Patient &amp; Family</button>
+            <div id="noteMsg" style="display:none; margin-top:0.75rem;"></div>
+        </div>
+
+        <!-- Past notes list -->
+        <div class="glass-card">
+            <h3 style="margin-bottom: 1.5rem;">Consultation History</h3>
+            <div id="notesList" style="display:flex; flex-direction:column; gap:1rem;">
+                <p style="color:var(--text-muted);">Loading notes...</p>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+async function addNote() {
+    const patient_name = document.getElementById('n-patient').value.trim();
+    const doctor_name  = document.getElementById('n-doctor').value.trim();
+    const note         = document.getElementById('n-note').value.trim();
+    if (!patient_name || !doctor_name || !note) {
+        showMsg('Please fill in all fields.', 'danger'); return;
+    }
+    const res = await fetch('/api/consultation-notes/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ patient_name, doctor_name, note })
+    });
+    if (res.ok) {
+        showMsg('✅ Note sent! Patient and family have been notified.', 'success');
+        document.getElementById('n-note').value = '';
+        loadNotes();
+    }
+}
+
+async function loadNotes() {
+    const res = await fetch('/api/consultation-notes');
+    const notes = await res.json();
+    const list = document.getElementById('notesList');
+    list.innerHTML = '';
+    if (!notes.length) {
+        list.innerHTML = '<p style="color:var(--text-muted);">No consultation notes yet.</p>'; return;
+    }
+    notes.forEach(n => {
+        const div = document.createElement('div');
+        div.style.cssText = 'padding:1.25rem; background:var(--surface); border-radius:12px; border-left:4px solid var(--primary);';
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                <span style="font-weight:700;">${n.patient_name}</span>
+                <span style="font-size:0.8rem; color:var(--text-muted);">${n.doctor_name} &bull; ${n.timestamp}</span>
+            </div>
+            <p style="color:#cbd5e1; font-size:0.92rem; line-height:1.5; margin:0;">${n.note}</p>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function showMsg(html, type) {
+    const el = document.getElementById('noteMsg');
+    el.style.cssText = `display:block; padding:0.8rem 1rem; border-radius:10px; border-left:4px solid ${type==='success'?'var(--success)':'var(--danger)'}; background:${type==='success'?'rgba(16,185,129,0.08)':'rgba(239,68,68,0.08)'}; color:${type==='success'?'var(--success)':'var(--danger)'}; font-size:0.9rem;`;
+    el.innerHTML = html;
+    setTimeout(() => el.style.display = 'none', 5000);
+}
+
+loadNotes();
+</script>
+{% endblock %}

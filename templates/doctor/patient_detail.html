@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-container">
+    <aside class="sidebar glass-card outfit">
+        <div class="logo" style="margin-bottom: 2rem;"><i class="ph-bold ph-heartbeat"></i> <span>Doctor</span>Portal</div>
+        <nav class="sidebar-menu">
+            <a href="/dashboard/doctor" class="sidebar-item active"><i class="ph ph-users-three"></i> Patients List</a>
+            <a href="/doctor/schedule" class="sidebar-item"><i class="ph ph-calendar-bold"></i> Today's Schedule</a>
+            <a href="/doctor/consultations" class="sidebar-item"><i class="ph ph-note-pencil"></i> Consultations</a>
+            <a href="/doctor/video" class="sidebar-item"><i class="ph ph-video-camera"></i> Video Room</a>
+        </nav>
+        <div style="margin-top: auto;"><a href="/login" class="btn btn-outline" style="width: 100%;">Logout</a></div>
+    </aside>
+
+    <main class="dashboard-content">
+        <header class="section-header outfit">
+            <div>
+                <div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.3rem;"><a href="/dashboard/doctor" style="color:var(--primary);">Patients List</a> / Patient #{{ patient.id }}</div>
+                <h1><span>{{ patient.name }}</span></h1>
+                <p style="color: var(--text-muted);">Full patient profile — appointments, notes, and reports in one place.</p>
+            </div>
+            <button onclick="startCall('{{ patient.name }}')" id="callBtn" class="btn btn-primary">
+                <i class="ph ph-video-camera"></i> Notify & Start Consultation
+            </button>
+        </header>
+
+        <!-- Script for video call logic -->
+        <script>
+        async function startCall(patientName) {
+            const btn = document.getElementById('callBtn');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner-gap" style="animation: spin 1s infinite;"></i> Notifying...';
+
+            try {
+                const res = await fetch('/api/doctor/start-call', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ patient_name: patientName })
+                });
+                const data = await res.json();
+                window.location.href = data.room_url;
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                alert('Connection error. Sending notification failed.');
+            }
+        }
+        </script>
+        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
+        <!-- Patient Info Card -->
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-bottom: 2rem;">
+            <div class="glass-card" style="display:flex; flex-direction:column; gap:1rem;">
+                <div style="text-align:center; padding-bottom:1rem; border-bottom:1px solid var(--surface-border);">
+                    <div style="width:80px; height:80px; border-radius:50%; background:rgba(59,130,246,0.15); border:2px solid var(--primary); display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; font-size:2.5rem; color:var(--primary);">
+                        <i class="ph ph-user-circle"></i>
+                    </div>
+                    <h3 style="margin-bottom:0.2rem;">{{ patient.name }}</h3>
+                    <div style="font-size:0.85rem; color:var(--text-muted);">ID: #{{ patient.id }}</div>
+                    <div style="margin-top:0.5rem;">
+                        <span style="background:rgba(16,185,129,0.1); color:var(--success); padding:0.3rem 0.8rem; border-radius:20px; font-size:0.8rem; font-weight:600;">Active Patient</span>
+                    </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.6rem; font-size:0.88rem;">
+                    <div><span style="color:var(--text-muted);">Age:</span> <strong>{{ patient.age }}</strong></div>
+                    <div><span style="color:var(--text-muted);">Gender:</span> <strong>{{ patient.gender }}</strong></div>
+                    <div><span style="color:var(--text-muted);">Blood Group:</span> <strong style="color:var(--danger);">{{ patient.blood_group }}</strong></div>
+                    <div><span style="color:var(--text-muted);">Phone:</span> <strong>{{ patient.phone or 'N/A' }}</strong></div>
+                    <div><span style="color:var(--text-muted);">Address:</span> {{ patient.address or 'N/A' }}</div>
+                    <div><span style="color:var(--text-muted);">Emergency:</span> {{ patient.emergency_contact or 'N/A' }}</div>
+                </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                <!-- Vitals -->
+                <div class="glass-card">
+                    <h3 style="margin-bottom:1rem;">Current Vitals</h3>
+                    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem;">
+                        {% set v = patient.vitals %}
+                        <div style="text-align:center; padding:1rem; background:var(--surface); border-radius:12px;">
+                            <i class="ph-fill ph-heart" style="color:var(--danger); font-size:1.5rem;"></i>
+                            <div style="font-size:1.5rem; font-weight:700; margin-top:0.3rem;">{{ v.heart_rate }}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">Heart Rate</div>
+                        </div>
+                        <div style="text-align:center; padding:1rem; background:var(--surface); border-radius:12px;">
+                            <i class="ph-fill ph-drop" style="color:var(--primary); font-size:1.5rem;"></i>
+                            <div style="font-size:1.5rem; font-weight:700; margin-top:0.3rem;">{{ v.blood_pressure }}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">Blood Pressure</div>
+                        </div>
+                        <div style="text-align:center; padding:1rem; background:var(--surface); border-radius:12px;">
+                            <i class="ph-fill ph-chart-line" style="color:var(--success); font-size:1.5rem;"></i>
+                            <div style="font-size:1.5rem; font-weight:700; margin-top:0.3rem;">{{ v.blood_sugar }}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">Blood Sugar</div>
+                        </div>
+                        <div style="text-align:center; padding:1rem; background:var(--surface); border-radius:12px;">
+                            <i class="ph-fill ph-person" style="color:var(--accent); font-size:1.5rem;"></i>
+                            <div style="font-size:1.5rem; font-weight:700; margin-top:0.3rem;">{{ v.bmi }}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">BMI</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Conditions & Allergies -->
+                <div class="glass-card">
+                    <h3 style="margin-bottom:1rem;">Medical Profile</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                        <div>
+                            <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">Conditions</div>
+                            {% for c in patient.conditions %}
+                            <span style="background:rgba(239,68,68,0.1); color:var(--danger); padding:0.3rem 0.7rem; border-radius:20px; font-size:0.8rem; margin-right:0.4rem; margin-bottom:0.4rem; display:inline-block;">{{ c }}</span>
+                            {% else %}
+                            <span style="color:var(--text-muted); font-size:0.85rem;">None listed</span>
+                            {% endfor %}
+                        </div>
+                        <div>
+                            <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">Allergies</div>
+                            {% for a in patient.allergies %}
+                            <span style="background:rgba(250,204,21,0.1); color:#facc15; padding:0.3rem 0.7rem; border-radius:20px; font-size:0.8rem; margin-right:0.4rem; margin-bottom:0.4rem; display:inline-block;">{{ a }}</span>
+                            {% else %}
+                            <span style="color:var(--text-muted); font-size:0.85rem;">None listed</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appointments for this patient -->
+        <div class="glass-card" style="margin-bottom:2rem;">
+            <h3 style="margin-bottom:1.25rem;">Appointment History <span style="font-size:0.85rem; color:var(--text-muted); font-weight:400;">({{ appointments|length }})</span></h3>
+            {% if appointments %}
+            <table class="data-table">
+                <thead><tr><th>ID</th><th>Doctor</th><th>Department</th><th>Date & Time</th><th>Status</th><th>Booked By</th></tr></thead>
+                <tbody>
+                {% for apt in appointments %}
+                <tr>
+                    <td style="font-weight:700; color:var(--primary);">#{{ apt.id }}</td>
+                    <td>{{ apt.doctor }}</td>
+                    <td>{{ apt.department }}</td>
+                    <td>{{ apt.date }} {{ apt.time }}</td>
+                    <td>
+                        {% if apt.status == 'Confirmed' %}
+                        <span class="badge-confirmed">{{ apt.status }}</span>
+                        {% else %}
+                        <span class="badge-pending">{{ apt.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:var(--text-muted); font-size:0.85rem;">{{ apt.booked_by }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="color:var(--text-muted);">No appointments for this patient yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Consultation Notes -->
+        <div class="glass-card" style="margin-bottom:2rem;">
+            <h3 style="margin-bottom:1.25rem;">Consultation Notes <span style="font-size:0.85rem; color:var(--text-muted); font-weight:400;">({{ notes|length }})</span></h3>
+            {% if notes %}
+            {% for n in notes %}
+            <div style="padding:1rem 1.25rem; background:var(--surface); border-radius:12px; border-left:4px solid var(--primary); margin-bottom:0.75rem;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem;">
+                    <span style="font-weight:700;">Note #{{ n.id }} — {{ n.doctor_name }}</span>
+                    <span style="font-size:0.8rem; color:var(--text-muted);">{{ n.timestamp }}</span>
+                </div>
+                <p style="color:#cbd5e1; font-size:0.9rem; margin:0;">{{ n.note }}</p>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="color:var(--text-muted);">No consultation notes yet. <a href="/doctor/consultations" style="color:var(--primary);">Add one now</a></p>
+            {% endif %}
+        </div>
+
+        <!-- Reports -->
+        <div class="glass-card">
+            <h3 style="margin-bottom:1.25rem;">AI-Analyzed Reports <span style="font-size:0.85rem; color:var(--text-muted); font-weight:400;">({{ reports|length }})</span></h3>
+            {% if reports %}
+            {% for r in reports %}
+            <div style="padding:1rem 1.25rem; background:var(--surface); border-radius:12px; border-left:4px solid var(--success); margin-bottom:0.75rem;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem;">
+                    <span style="font-weight:700;">Report #{{ r.id }} — {{ r.filename }}</span>
+                    <span style="font-size:0.8rem; color:var(--text-muted);">{{ r.timestamp }}</span>
+                </div>
+                <p style="color:#cbd5e1; font-size:0.88rem; line-height:1.5; margin:0;">{{ r.summary[:300] }}{% if r.summary|length > 300 %}...{% endif %}</p>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="color:var(--text-muted);">No analyzed reports for this patient yet.</p>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}
