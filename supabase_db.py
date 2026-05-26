@@ -106,27 +106,37 @@ class UserRepository:
     
     @staticmethod
     def _hash_password(password: str) -> str:
-        """Hash password using scrypt with a fixed app-level salt.
-        Significantly stronger than plain SHA-256 — resistant to rainbow tables
-        and GPU brute-force attacks.
+        """Hash password using SHA-256 with a consistent app-level salt.
+        Simple, fast, works identically on every environment (local + Vercel).
+        The salt is derived from SECRET_KEY so it's not plain SHA-256.
         """
-        app_salt = (os.environ.get("SECRET_KEY") or "careconnect-salt").encode()
-        dk = hashlib.scrypt(password.encode(), salt=app_salt, n=16384, r=8, p=1)
-        return dk.hex()
+        salt = (os.environ.get("SECRET_KEY") or os.environ.get("JWT_SECRET") or "careconnect-default-salt-2026")
+        salted = f"{salt}::{password}"
+        return hashlib.sha256(salted.encode()).hexdigest()
 
     @staticmethod
     def _hash_password_legacy(password: str) -> str:
-        """Legacy SHA-256 hash — kept only for migrating existing accounts."""
+        """Plain SHA-256 with no salt — for accounts created before the salt was added."""
         return hashlib.sha256(password.encode()).hexdigest()
 
     @staticmethod
     def verify_password(password: str, stored_hash: str) -> bool:
-        """Verify password against stored hash, supporting both scrypt and legacy SHA-256."""
-        # Try scrypt first
+        """Verify password — tries salted SHA-256 first, then legacy plain SHA-256."""
+        # Current method: salted SHA-256
         if UserRepository._hash_password(password) == stored_hash:
             return True
-        # Fall back to legacy SHA-256 for old accounts
-        return UserRepository._hash_password_legacy(password) == stored_hash
+        # Legacy: plain SHA-256 (accounts created before this change)
+        if UserRepository._hash_password_legacy(password) == stored_hash:
+            return True
+        # Also try scrypt in case some accounts were created with the brief scrypt period
+        try:
+            app_salt = (os.environ.get("SECRET_KEY") or "careconnect-salt").encode()
+            dk = hashlib.scrypt(password.encode(), salt=app_salt, n=16384, r=8, p=1)
+            if dk.hex() == stored_hash:
+                return True
+        except Exception:
+            pass
+        return False
     
     @staticmethod
     def create_user(full_name: str, email: str, password: str, role: str, **kwargs) -> Dict[str, Any]:

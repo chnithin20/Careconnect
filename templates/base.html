@@ -16,7 +16,8 @@
             position: fixed; top: 1.2rem; right: 1.5rem; z-index: 9000;
             background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.1);
             color: white; border-radius: 50%; width: 44px; height: 44px;
-            display: flex; align-items: center; justify-content: center;
+            display: none; /* hidden by default — JS shows it on dashboard pages only */
+            align-items: center; justify-content: center;
             cursor: pointer; font-size: 1.3rem; backdrop-filter: blur(10px);
             box-shadow: 0 4px 20px rgba(0,0,0,0.4); transition: all .2s;
         }
@@ -60,10 +61,10 @@
 <body>
     <!-- Mobile sidebar overlay -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden" onclick="closeSidebar()"></div>
-    <!-- Mobile hamburger button -->
+    <!-- Mobile hamburger — hidden by default, shown by JS on dashboard pages only -->
     <button id="hamburgerBtn" onclick="toggleSidebar()"
-        class="fixed top-4 left-4 z-50 lg:hidden flex items-center justify-center w-11 h-11 rounded-full text-white text-xl"
-        style="background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(10px); box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+        class="fixed top-4 left-4 z-50 lg:hidden items-center justify-center w-11 h-11 rounded-full text-white text-xl"
+        style="display:none; background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(10px); box-shadow:0 4px 20px rgba(0,0,0,0.4);">
         <i class="ph ph-list" id="hamburgerIcon"></i>
     </button>
 
@@ -179,13 +180,13 @@
         } catch(e) {}
     }
 
-    // Only show bell on dashboard pages, poll every 3 seconds
+    // Show bell only on dashboard pages, poll every 3 seconds
     if (!['/', '/login', '/signup', '/demo'].includes(window.location.pathname)) {
+        document.getElementById('notif-bell-btn').style.display = 'flex';
         pollNotifications();
         setInterval(pollNotifications, 3000);
-    } else {
-        document.getElementById('notif-bell-btn').style.display = 'none';
     }
+    // Bell stays hidden (display:none from CSS) on public pages
     </script>
 
     <script>
@@ -221,11 +222,11 @@
             if (window.innerWidth < 1024) closeSidebar();
         });
     });
-    // Hide hamburger on non-dashboard pages
+    // Show hamburger only on dashboard pages (pages with a sidebar)
     const _path = window.location.pathname;
-    const _isDash = !['/','login','/signup','/demo'].some(p => _path === p);
+    const _isDash = !['/', '/login', '/signup', '/demo'].includes(_path);
     const _hBtn = document.getElementById('hamburgerBtn');
-    if (_hBtn && !_isDash) _hBtn.style.display = 'none';
+    if (_hBtn && _isDash) _hBtn.style.display = 'flex';
     </script>
 </body>
 </html>
