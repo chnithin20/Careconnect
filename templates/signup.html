@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block container_class %}body-centered{% endblock %}
+
+{% block content %}
+<div id="signupContainer" class="glass-card animate-fade-in w-full max-w-xl mx-auto text-center">
+
+    <!-- Step 1: Role Selection -->
+    <div id="roleSelectionStep">
+        <div class="logo outfit justify-center mb-6 text-2xl md:text-3xl">
+            <i class="ph-bold ph-heartbeat"></i> <span>Care</span>Connect
+        </div>
+        <h2 class="text-2xl font-bold mb-2">Join CareConnect</h2>
+        <p class="mb-8" style="color:var(--text-muted);">Select your role to get started with the right tools.</p>
+
+        <div class="role-grid grid grid-cols-2 gap-4 text-left">
+            <div class="role-card glass" onclick="selectRole('patient')">
+                <i class="ph ph-user-circle"></i>
+                <div><div class="role-title">Patient</div><div class="role-desc">For elderly parents managed by family.</div></div>
+            </div>
+            <div class="role-card glass" onclick="selectRole('children')">
+                <i class="ph ph-users-three"></i>
+                <div><div class="role-title">Children</div><div class="role-desc">Manage your parent's health and family.</div></div>
+            </div>
+            <div class="role-card glass" onclick="selectRole('doctor')">
+                <i class="ph ph-stethoscope"></i>
+                <div><div class="role-title">Doctor</div><div class="role-desc">Professional medical tools and schedule.</div></div>
+            </div>
+            <div class="role-card glass" onclick="selectRole('hospital-admin')">
+                <i class="ph ph-hospital"></i>
+                <div><div class="role-title">Hospital Admin</div><div class="role-desc">Manage staff and center operations.</div></div>
+            </div>
+            <div class="role-card glass col-span-2" onclick="selectRole('diagnostic')">
+                <i class="ph ph-microscope"></i>
+                <div><div class="role-title">Diagnostic Center</div><div class="role-desc">Analyze and upload medical reports for patients.</div></div>
+            </div>
+        </div>
+
+        <div class="mt-6 text-sm" style="color:var(--text-muted);">
+            Already have an account?
+            <a href="/login" class="font-semibold" style="color:var(--primary);">Sign in</a>
+        </div>
+    </div>
+
+    <!-- Step 2: Form -->
+    <div id="signupFormStep" class="hidden text-left">
+        <button onclick="goBack()" class="flex items-center gap-2 mb-6 text-sm cursor-pointer"
+            style="background:none; border:none; color:var(--text-muted);">
+            <i class="ph ph-arrow-left"></i> Back to selection
+        </button>
+
+        <h2 id="formTitle" class="text-2xl font-bold mb-1">Create Account</h2>
+        <p id="formSubtitle" class="mb-6 text-sm" style="color:var(--text-muted);">Fill in your details to join.</p>
+
+        <form id="mainSignupForm" class="flex flex-col gap-4">
+            <input type="hidden" id="selectedRoleInput" name="role">
+
+            <!-- Common fields -->
+            <div class="form-grid-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-sm" style="color:var(--text-muted);">Full Name</label>
+                    <input type="text" name="full_name" placeholder="John Doe" class="glass-input" required>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-sm" style="color:var(--text-muted);">Email Address</label>
+                    <input type="email" name="email" placeholder="john@example.com" class="glass-input" required>
+                </div>
+            </div>
+
+            <!-- Role-specific fields injected here -->
+            <div id="roleFields"></div>
+
+            <!-- Password -->
+            <div class="form-grid-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-sm" style="color:var(--text-muted);">Password</label>
+                    <input type="password" name="password" placeholder="••••••••" class="glass-input" required>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-sm" style="color:var(--text-muted);">Confirm Password</label>
+                    <input type="password" name="confirm_password" placeholder="••••••••" class="glass-input" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full justify-center mt-2 text-base">
+                Create Account <i class="ph ph-user-plus"></i>
+            </button>
+        </form>
+    </div>
+
+    <div id="signupMsg" class="hidden mt-5 text-left"></div>
+</div>
+
+<style>
+.role-card {
+    padding: 1.1rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.role-card:hover {
+    border-color: var(--primary);
+    background: rgba(59,130,246,0.05);
+    transform: translateY(-2px);
+}
+.role-card i {
+    font-size: 1.8rem;
+    color: var(--primary);
+    background: rgba(59,130,246,0.1);
+    padding: 0.65rem;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+.role-title { font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.role-desc  { font-size: 0.78rem; color: var(--text-muted); line-height: 1.3; margin-top: 0.15rem; }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const roleSpecificData = {
+    'patient': {
+        title: 'Sign Up as Patient', subtitle: 'For independent elderly users or parents.',
+        fields: `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-sm" style="color:var(--text-muted);">Age</label>
+                    <input type="number" name="age" placeholder="65" class="glass-input" required>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-sm" style="color:var(--text-muted);">Blood Group</label>
+                    <select name="blood_group" class="glass-input" style="background:#000c24;">
+                        <option>O+</option><option>O-</option><option>A+</option><option>A-</option>
+                        <option>B+</option><option>B-</option><option>AB+</option><option>AB-</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-sm" style="color:var(--text-muted);">Primary Health Conditions</label>
+                <input type="text" name="conditions" placeholder="e.g. Hypertension, Diabetes" class="glass-input">
+            </div>`
+    },
+    'children': {
+        title: 'Sign Up as Children', subtitle: "Manage and monitor your parent's health.",
+        fields: `
+            <div class="flex flex-col gap-1.5">
+                <label class="text-sm" style="color:var(--text-muted);">Connecting Patient Name (Optional)</label>
+                <input type="text" name="connect_patient" placeholder="George Smith" class="glass-input">
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-sm" style="color:var(--text-muted);">Relationship to Patient</label>
+                <input type="text" name="relationship" placeholder="Daughter / Son" class="glass-input" required>
+            </div>`
+    },
+    'doctor': {
+        title: 'Sign Up as Doctor', subtitle: 'Join our network of healthcare specialists.',
+        fields: `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-sm" style="color:var(--text-muted);">Specialty</label>
+                    <input type="text" name="specialty" placeholder="Cardiology" class="glass-input" required>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-sm" style="color:var(--text-muted);">Medical License ID</label>
+                    <input type="text" name="license" placeholder="MC-XXXX-XX" class="glass-input" required>
+                </div>
+            </div>`
+    },
+    'hospital-admin': {
+        title: 'Hospital Admin Registration', subtitle: 'Manage your hospital branch and staff.',
+        fields: `
+            <div class="flex flex-col gap-1.5">
+                <label class="text-sm" style="color:var(--text-muted);">Hospital / Center Name</label>
+                <input type="text" name="hospital_name" placeholder="City Care Hospital" class="glass-input" required>
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-sm" style="color:var(--text-muted);">Employee ID</label>
+                <input type="text" name="employee_id" placeholder="ADM-998" class="glass-input" required>
+            </div>`
+    },
+    'diagnostic': {
+        title: 'Diagnostic Center Signup', subtitle: 'Register your testing facility.',
+        fields: `
+            <div class="flex flex-col gap-1.5">
+                <label class="text-sm" style="color:var(--text-muted);">Diagnostic Lab Name</label>
+                <input type="text" name="lab_name" placeholder="Apex Diagnostics" class="glass-input" required>
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-sm" style="color:var(--text-muted);">Facility Address</label>
+                <input type="text" name="location" placeholder="Plot 45, Sector 4, Bangalore" class="glass-input" required>
+            </div>`
+    }
+};
+
+function selectRole(role) {
+    const d = roleSpecificData[role];
+    document.getElementById('selectedRoleInput').value = role;
+    document.getElementById('formTitle').textContent = d.title;
+    document.getElementById('formSubtitle').textContent = d.subtitle;
+    document.getElementById('roleFields').innerHTML = d.fields;
+    document.getElementById('roleSelectionStep').classList.add('hidden');
+    document.getElementById('signupFormStep').classList.remove('hidden');
+}
+
+function goBack() {
+    document.getElementById('roleSelectionStep').classList.remove('hidden');
+    document.getElementById('signupFormStep').classList.add('hidden');
+}
+
+function showSignupMsg(message, ok) {
+    const el = document.getElementById('signupMsg');
+    el.style.cssText = `display:block; margin-top:1.5rem; padding:0.85rem 1rem; border-radius:10px;
+        border-left:4px solid ${ok ? 'var(--success)' : 'var(--danger)'};
+        background:${ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)'};
+        color:${ok ? 'var(--success)' : 'var(--danger)'}; font-size:0.9rem;`;
+    el.innerHTML = message;
+}
+
+document.getElementById('mainSignupForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const payload = Object.fromEntries(new FormData(this).entries());
+    if (payload.password !== payload.confirm_password) {
+        showSignupMsg('Passwords do not match.', false); return;
+    }
+    const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+        if (data.access_token) localStorage.setItem('cc_token', data.access_token);
+        showSignupMsg(`Account created as <strong>${payload.role}</strong>! Redirecting...`, true);
+        setTimeout(() => window.location.href = data.dashboard || '/login', 1500);
+    } else {
+        showSignupMsg(data.error || 'Signup failed. Please try again.', false);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-container">
+    <aside class="sidebar glass-card outfit">
+        <div class="logo mb-8"><i class="ph-bold ph-heartbeat"></i> <span>Doctor</span>Portal</div>
+        <nav class="sidebar-menu">
+            <a href="/dashboard/doctor" class="sidebar-item active"><i class="ph ph-users-three"></i> Patients List</a>
+            <a href="/doctor/schedule" class="sidebar-item"><i class="ph ph-calendar-bold"></i> Today's Schedule</a>
+            <a href="/doctor/consultations" class="sidebar-item"><i class="ph ph-note-pencil"></i> Consultations</a>
+        </nav>
+        <div class="mt-auto pt-4">
+            <a href="/login" class="btn btn-outline w-full justify-center">Logout</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-content">
+        <header class="section-header outfit">
+            <div>
+                <h1>Patient <span>Registry</span></h1>
+                <p class="mt-1 text-sm" style="color:var(--text-muted);">Click any patient ID to see their full profile, history, and reports.</p>
+            </div>
+            <div class="flex items-center gap-2 text-sm" style="color:#4ade80;">
+                <span class="w-2 h-2 rounded-full inline-block" style="background:#4ade80; animation:pulse 2s infinite;"></span>
+                Live Registry
+            </div>
+        </header>
+
+        <div class="glass-card mb-6">
+            <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                <h3 class="text-lg font-bold">
+                    All Patients
+                    <span id="patientCount" class="text-sm font-normal ml-1" style="color:var(--text-muted);"></span>
+                </h3>
+            </div>
+            <!-- Horizontal scroll wrapper for table on small screens -->
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Patient ID</th>
+                            <th>Name</th>
+                            <th>Age / Gender</th>
+                            <th>Blood Group</th>
+                            <th>Conditions</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="patientBody">
+                        <tr><td colspan="7" class="text-center py-6" style="color:var(--text-muted);">Loading patients...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                <h3 class="text-lg font-bold">
+                    Latest Appointment Updates
+                    <span id="doctorApptCount" class="text-sm font-normal ml-1" style="color:var(--text-muted);"></span>
+                </h3>
+                <a href="/doctor/schedule" class="btn btn-outline text-sm">Open Full Schedule</a>
+            </div>
+            <div id="doctorApptFeed"><p class="text-sm" style="color:var(--text-muted);">Loading appointments...</p></div>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function loadPatients() {
+    const res = await fetch('/api/patients');
+    const patients = await res.json();
+    const body = document.getElementById('patientBody');
+    const count = document.getElementById('patientCount');
+    body.innerHTML = '';
+    count.textContent = `(${patients.length})`;
+    if (!patients.length) {
+        body.innerHTML = '<tr><td colspan="7" style="color:var(--text-muted); text-align:center; padding:1.5rem;">No patients registered yet.</td></tr>';
+        return;
+    }
+    patients.forEach(p => {
+        const conditions = (p.conditions || []).slice(0,2).join(', ') || 'None';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><a href="/doctor/patient/${p.id}" style="color:var(--primary); font-weight:700;">#${p.id}</a></td>
+            <td><div style="font-weight:600;">${p.name}</div><span style="font-size:0.78rem; color:var(--text-muted);">${p.phone || ''}</span></td>
+            <td>${p.age} / ${p.gender}</td>
+            <td style="color:var(--danger); font-weight:600;">${p.blood_group}</td>
+            <td style="font-size:0.82rem; color:var(--text-muted);">${conditions}</td>
+            <td><span class="badge-confirmed">Active</span></td>
+            <td><a href="/doctor/patient/${p.id}" class="btn btn-outline" style="font-size:0.78rem; padding:0.35rem 0.85rem;">View</a></td>`;
+        body.appendChild(tr);
+    });
+}
+
+async function loadDoctorAppointments() {
+    const res = await fetch('/api/appointments');
+    const appointments = await res.json();
+    const feed = document.getElementById('doctorApptFeed');
+    const count = document.getElementById('doctorApptCount');
+    if (!appointments.length) {
+        count.textContent = '(0)';
+        feed.innerHTML = '<p style="color:var(--text-muted);">No appointments booked yet.</p>';
+        return;
+    }
+    count.textContent = `(${appointments.length})`;
+    feed.innerHTML = '';
+    appointments.slice(0,5).forEach(apt => {
+        const dateStr = apt.date ? new Date(apt.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'TBD';
+        const div = document.createElement('div');
+        div.style.cssText = 'padding:1rem 1.25rem; background:var(--surface); border-radius:12px; border-left:4px solid var(--primary); margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;';
+        div.innerHTML = `
+            <div>
+                <div style="font-weight:700;">${apt.patient_name} → ${apt.doctor}</div>
+                <div style="font-size:0.82rem; color:var(--text-muted);">${apt.department} | ${dateStr} ${apt.time || ''} | Appt #${apt.id}</div>
+            </div>
+            <span style="background:${apt.status==='Confirmed'?'rgba(16,185,129,0.1)':'rgba(168,85,247,0.1)'}; color:${apt.status==='Confirmed'?'var(--success)':'var(--accent)'}; padding:0.3rem 0.8rem; border-radius:20px; font-size:0.78rem; font-weight:600; white-space:nowrap;">${apt.status}</span>`;
+        feed.appendChild(div);
+    });
+}
+
+loadPatients(); loadDoctorAppointments();
+setInterval(loadDoctorAppointments, 5000);
+</script>
+<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}</style>
+{% endblock %}

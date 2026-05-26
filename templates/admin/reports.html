@@ -1,0 +1,72 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-container">
+    <aside class="sidebar glass-card outfit">
+        <div class="logo" style="margin-bottom: 2rem;"><i class="ph-bold ph-hospital"></i> <span>Admin</span>Portal</div>
+        <nav class="sidebar-menu">
+            <a href="/dashboard/hospital-admin" class="sidebar-item"><i class="ph ph-chart-bar"></i> Hospital Stats</a>
+            <a href="/admin/doctors" class="sidebar-item"><i class="ph ph-user-list"></i> Manage Doctors</a>
+            <a href="/admin/appointments" class="sidebar-item"><i class="ph ph-calendar-plus"></i> Appointments</a>
+            <a href="/admin/reports" class="sidebar-item active"><i class="ph ph-file-text"></i> Reports</a>
+        </nav>
+        <div style="margin-top: auto;"><a href="/login" class="btn btn-outline" style="width: 100%;">Logout</a></div>
+    </aside>
+    <main class="dashboard-content">
+        <header class="section-header outfit">
+            <div>
+                <h1>Hospital <span>Reports</span></h1>
+                <p style="color: var(--text-muted);">Review AI-analyzed medical reports across patients.</p>
+            </div>
+            <button class="btn btn-outline" onclick="alert('Exporting reports...')"><i class="ph ph-download-simple"></i> Export</button>
+        </header>
+
+        <div class="glass-card">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Report Name</th><th>Patient</th><th>Uploaded By</th><th>Submitted</th><th>AI Status</th><th>Summary Preview</th></tr>
+                </thead>
+                <tbody id="adminReportsBody">
+                    <tr><td colspan="6" style="color:var(--text-muted); text-align:center; padding:1.5rem;">Loading reports...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+async function loadAdminReports() {
+    const res = await fetch('/api/reports');
+    const reports = await res.json();
+    const body = document.getElementById('adminReportsBody');
+
+    if (!reports.length) {
+        body.innerHTML = '<tr><td colspan="6" style="color:var(--text-muted); text-align:center; padding:1.5rem;">No analyzed reports yet.</td></tr>';
+        return;
+    }
+
+    body.innerHTML = '';
+    reports.forEach((report) => {
+        const tr = document.createElement('tr');
+        const preview = report.summary ? report.summary.slice(0, 120) : '';
+        tr.innerHTML = `
+            <td><div style="font-weight:600;">${escapeHtml(report.filename)}</div></td>
+            <td>${escapeHtml(report.patient_name)}</td>
+            <td style="text-transform:capitalize;">${escapeHtml(report.uploaded_by)}</td>
+            <td>${escapeHtml(report.timestamp)}</td>
+            <td><span style="background:rgba(16,185,129,0.1); color:var(--success); padding:0.3rem 0.8rem; border-radius:20px; font-size:0.8rem;">${escapeHtml(report.status || 'Analyzed')}</span></td>
+            <td style="font-size:0.82rem; color:var(--text-muted);">${escapeHtml(preview)}${report.summary && report.summary.length > 120 ? '...' : ''}</td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+loadAdminReports();
+setInterval(loadAdminReports, 8000);
+</script>
+{% endblock %}

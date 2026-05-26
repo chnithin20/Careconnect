@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <nav class="navbar glass">
+        <div class="logo outfit">
+            <i class="ph-bold ph-heartbeat"></i> <span>Care</span>Connect
+        </div>
+        <!-- Desktop nav -->
+        <div class="nav-links hidden lg:flex">
+            <a href="/" class="nav-link active">Home</a>
+            <a href="#features" class="nav-link">Features</a>
+            <a href="#about" class="nav-link">About</a>
+            <a href="/login" class="btn btn-outline">Log In</a>
+            <a href="/dashboard/children" class="btn btn-primary">Try Dashboard</a>
+        </div>
+        <!-- Mobile nav (shown via hamburger in base.html) -->
+        <div class="flex lg:hidden gap-2 items-center">
+            <a href="/login" class="btn btn-outline text-sm px-3 py-2">Log In</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero outfit">
+            <div class="animate-fade-in">
+                <span class="hero-badge">Care with Confidence</span>
+                <h1>Smart Support for <span style="color:var(--primary);">Aging Parents</span></h1>
+                <p>Centralize appointments, medical reports, and real-time monitoring into one seamless, AI-powered health experience for your entire family.</p>
+                <div class="hero-btns">
+                    <a href="/dashboard/children" class="btn btn-primary" style="padding:1.1rem 2.2rem; font-size:1.05rem;">
+                        Get Started Free <i class="ph ph-arrow-right"></i>
+                    </a>
+                    <a href="/demo" class="btn btn-outline" style="padding:1.1rem 2.2rem; font-size:1.05rem;">
+                        Watch Demo
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Highlights -->
+        <section id="features" class="px-[5%] py-20 md:py-28">
+            <h2 class="outfit text-center text-3xl md:text-5xl font-bold mb-12 md:mb-16">
+                Core <span style="color:var(--primary);">Capabilities</span>
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                <div class="glass-card">
+                    <i class="ph ph-calendar-check text-5xl mb-5 block" style="color:var(--primary);"></i>
+                    <h3 class="text-xl font-bold mb-3">Smart Appointments</h3>
+                    <p style="color:var(--text-muted);">Seamlessly book and manage all visits. Auto-sync with Google Calendar and get automatic reminders.</p>
+                </div>
+                <div class="glass-card">
+                    <i class="ph ph-brain text-5xl mb-5 block" style="color:var(--accent);"></i>
+                    <h3 class="text-xl font-bold mb-3">AI Report Analysis</h3>
+                    <p style="color:var(--text-muted);">Upload medical reports and get instant, plain-English AI summaries flagging abnormal values and trends.</p>
+                </div>
+                <div class="glass-card sm:col-span-2 lg:col-span-1">
+                    <i class="ph ph-users-three text-5xl mb-5 block" style="color:var(--secondary);"></i>
+                    <h3 class="text-xl font-bold mb-3">Family Sharing</h3>
+                    <p style="color:var(--text-muted);">Keep the whole family in the loop. Multi-user access ensures everyone stays updated in real-time.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="px-[5%] py-20 md:py-28 max-w-4xl mx-auto text-center">
+            <h2 class="outfit text-3xl md:text-5xl font-bold mb-6">
+                Our <span style="color:var(--primary);">Mission</span>
+            </h2>
+            <p class="text-lg md:text-xl leading-relaxed" style="color:var(--text-muted);">
+                CareConnect was born from a simple realization: managing a parent's health from a distance shouldn't be a source of stress.
+                We combine artificial intelligence with intuitive design to bridge the gap between families, doctors, and lab results,
+                ensuring your loved ones get the care they deserve, no matter where you are.
+            </p>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="py-20 md:py-28 px-[5%]" style="background:var(--surface); border-top:1px solid var(--surface-border);">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-10 max-w-3xl mx-auto text-center">
+                <div>
+                    <h2 class="outfit text-4xl md:text-5xl font-extrabold">80%</h2>
+                    <p class="mt-2" style="color:var(--text-muted);">Reduction in Missed Visits</p>
+                </div>
+                <div>
+                    <h2 class="outfit text-4xl md:text-5xl font-extrabold">&lt; 30s</h2>
+                    <p class="mt-2" style="color:var(--text-muted);">AI Report Processing</p>
+                </div>
+                <div>
+                    <h2 class="outfit text-4xl md:text-5xl font-extrabold">50%</h2>
+                    <p class="mt-2" style="color:var(--text-muted);">Daily Family Engagement</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="py-12 px-[5%] text-center" style="border-top:1px solid var(--surface-border); color:var(--text-muted);">
+        <div class="logo outfit justify-center mb-4 text-xl">
+            <i class="ph-bold ph-heartbeat"></i> <span>Care</span>Connect
+        </div>
+        <p class="text-sm">&copy; 2026 CareConnect. Built for premium health management.</p>
+    </footer>
+{% endblock %}

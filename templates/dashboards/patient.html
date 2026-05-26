@@ -1,0 +1,168 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-container">
+    <aside class="sidebar glass-card outfit">
+        <div class="logo mb-8"><i class="ph-bold ph-heartbeat"></i> <span>Patient</span>Portal</div>
+        <nav class="sidebar-menu">
+            <a href="/dashboard/patient" class="sidebar-item active"><i class="ph ph-house"></i> Home</a>
+            <a href="/patient/reminders" class="sidebar-item"><i class="ph ph-bell"></i> Reminders</a>
+            <a href="/patient/chat" class="sidebar-item"><i class="ph ph-chat-centered-dots"></i> Chat with Children</a>
+        </nav>
+        <div class="mt-auto pt-4">
+            <a href="/login" class="btn btn-outline w-full justify-center">Logout</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-content">
+        <header class="section-header outfit">
+            <div>
+                <h1>Welcome Back!</h1>
+                <p class="mt-1 text-sm" style="color:var(--text-muted);">How are you feeling today?</p>
+            </div>
+        </header>
+
+        <div class="vitals-grid mb-6">
+            <div class="glass-card vital-card">
+                <div class="vital-icon" style="background:rgba(239,68,68,0.1); color:var(--danger);"><i class="ph-fill ph-heart"></i></div>
+                <div class="vital-value outfit">{{ vitals.heart_rate }}</div>
+                <div class="vital-label">Last Pulse</div>
+            </div>
+            <div class="glass-card vital-card">
+                <div class="vital-icon" style="background:rgba(59,130,246,0.1); color:var(--primary);"><i class="ph-fill ph-drop"></i></div>
+                <div class="vital-value outfit">{{ vitals.blood_pressure }}</div>
+                <div class="vital-label">Blood Pressure</div>
+            </div>
+            <div class="glass-card vital-card">
+                <div class="vital-icon" style="background:rgba(16,185,129,0.1); color:var(--success);"><i class="ph-fill ph-barbell"></i></div>
+                <div class="vital-value outfit">{{ vitals.blood_sugar }}</div>
+                <div class="vital-label">Blood Sugar</div>
+            </div>
+            <div class="glass-card vital-card">
+                <div class="vital-icon" style="background:rgba(168,85,247,0.1); color:var(--accent);"><i class="ph-fill ph-person"></i></div>
+                <div class="vital-value outfit">{{ vitals.bmi }}</div>
+                <div class="vital-label">BMI</div>
+            </div>
+        </div>
+
+        <div class="glass-card mb-6">
+            <h3 class="text-lg font-bold mb-4">
+                Today's Medications
+                <span class="text-sm font-normal ml-1" style="color:var(--accent);">— notifies your children when marked</span>
+            </h3>
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-3 p-4 rounded-2xl flex-wrap" style="background:var(--surface); border-left:5px solid var(--primary);">
+                    <div>
+                        <div class="font-bold">Morning BP Tablet</div>
+                        <p class="text-sm mt-0.5" style="color:var(--text-muted);">Take with breakfast at 8:30 AM</p>
+                    </div>
+                    <button onclick="logMed('Morning BP Tablet')" class="btn btn-primary">Took It</button>
+                </div>
+                <div class="flex items-center justify-between gap-3 p-4 rounded-2xl flex-wrap" style="background:var(--surface); border-left:5px solid var(--success);">
+                    <div>
+                        <div class="font-bold">Vitamin D Supplement</div>
+                        <p class="text-sm mt-0.5" style="color:var(--text-muted);">After lunch at 1:00 PM</p>
+                    </div>
+                    <button onclick="logMed('Vitamin D Supplement')" class="btn btn-primary">Took It</button>
+                </div>
+                <div class="flex items-center justify-between gap-3 p-4 rounded-2xl flex-wrap" style="background:var(--surface); border-left:5px solid var(--accent);">
+                    <div>
+                        <div class="font-bold">Evening Heart Pill</div>
+                        <p class="text-sm mt-0.5" style="color:var(--text-muted);">After dinner at 8:00 PM</p>
+                    </div>
+                    <button onclick="logMed('Evening Heart Pill')" class="btn btn-primary">Took It</button>
+                </div>
+            </div>
+            <div id="medMsg" class="hidden mt-3"></div>
+        </div>
+
+        <div class="glass-card mb-6">
+            <h3 class="text-lg font-bold mb-4">
+                Upcoming Appointments
+                <span id="homeApptCount" class="text-sm font-normal ml-1" style="color:var(--text-muted);"></span>
+            </h3>
+            <div id="homeApptFeed"><p class="text-sm" style="color:var(--text-muted);">Loading appointments...</p></div>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="text-lg font-bold mb-4">
+                Doctor's Notes
+                <span class="text-sm font-normal ml-1" style="color:var(--text-muted);">— updated live by your doctor</span>
+            </h3>
+            <div id="notesFeed"><p class="text-sm" style="color:var(--text-muted);">No notes from your doctor yet.</p></div>
+        </div>
+    </main>
+</div>
+<a href="/emergency" class="sos-btn outfit">SOS</a>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+window.CARECONNECT_PATIENT_ID   = '{{ patient_id or "" }}';
+window.CARECONNECT_PATIENT_NAME = '{{ patient_name or "" }}';
+
+async function logMed(name) {
+    const res = await fetch('/api/medicine-log/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ medicine: name, taken_by: 'patient' })
+    });
+    const el = document.getElementById('medMsg');
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        el.style.cssText = 'display:block; padding:0.75rem 1rem; border-radius:10px; border-left:4px solid var(--danger); background:rgba(239,68,68,0.08); color:var(--danger); font-size:0.9rem;';
+        el.innerHTML = body.error || 'Could not log medicine. Please try again.';
+        setTimeout(() => { el.style.display = 'none'; }, 5000);
+        return;
+    }
+    el.style.cssText = 'display:block; padding:0.75rem 1rem; border-radius:10px; border-left:4px solid var(--success); background:rgba(16,185,129,0.08); color:var(--success); font-size:0.9rem;';
+    el.innerHTML = `<strong>${name}</strong> logged! Your children have been notified.`;
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+async function loadAppointments() {
+    const patientParam = window.CARECONNECT_PATIENT_NAME ? `?patient_name=${encodeURIComponent(window.CARECONNECT_PATIENT_NAME)}` : '';
+    const res = await fetch(`/api/appointments${patientParam}`);
+    const appointments = await res.json();
+    const feed = document.getElementById('homeApptFeed');
+    const count = document.getElementById('homeApptCount');
+    if (!appointments.length) {
+        count.textContent = '(0)';
+        feed.innerHTML = '<p style="color:var(--text-muted);">No appointments booked yet.</p>';
+        return;
+    }
+    count.textContent = `(${appointments.length})`;
+    feed.innerHTML = '';
+    appointments.slice(0,4).forEach(apt => {
+        const dateStr = apt.date ? new Date(apt.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'TBD';
+        const div = document.createElement('div');
+        div.style.cssText = 'padding:1rem 1.25rem; background:var(--surface); border-radius:12px; border-left:4px solid var(--primary); margin-bottom:0.75rem;';
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.3rem; margin-bottom:0.3rem;">
+                <span style="font-weight:700;">${apt.doctor} - ${apt.department}</span>
+                <span style="font-size:0.8rem; color:var(--text-muted);">${dateStr} ${apt.time || ''}</span>
+            </div>
+            <div style="font-size:0.82rem; color:var(--text-muted);">Booked by: ${apt.booked_by || 'children'}</div>`;
+        feed.appendChild(div);
+    });
+}
+
+async function loadNotes() {
+    const patientParam = window.CARECONNECT_PATIENT_NAME ? `?patient_name=${encodeURIComponent(window.CARECONNECT_PATIENT_NAME)}` : '';
+    const res = await fetch(`/api/consultation-notes${patientParam}`);
+    const notes = await res.json();
+    const feed = document.getElementById('notesFeed');
+    if (!notes.length) return;
+    feed.innerHTML = '';
+    notes.slice(0,3).forEach(n => {
+        const div = document.createElement('div');
+        div.style.cssText = 'padding:1rem 1.25rem; background:var(--surface); border-radius:12px; border-left:4px solid var(--primary); margin-bottom:0.75rem;';
+        div.innerHTML = `<div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.3rem; margin-bottom:0.3rem;"><span style="font-weight:700;">${n.doctor_name}</span><span style="font-size:0.8rem; color:var(--text-muted);">${n.timestamp}</span></div><p style="color:#cbd5e1; font-size:0.9rem; margin:0;">${n.note}</p>`;
+        feed.appendChild(div);
+    });
+}
+
+loadAppointments(); loadNotes();
+setInterval(loadAppointments, 5000);
+setInterval(loadNotes, 5000);
+</script>
+{% endblock %}

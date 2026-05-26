@@ -1,0 +1,83 @@
+﻿{% extends "base.html" %}
+
+{% block container_class %}body-centered{% endblock %}
+
+{% block content %}
+<div class="glass-card animate-fade-in w-full max-w-md mx-auto text-center">
+    <div class="logo outfit justify-center mb-8 text-2xl md:text-3xl">
+        <i class="ph-bold ph-heartbeat"></i> <span>Care</span>Connect
+    </div>
+    <h2 class="text-2xl font-bold mb-2">Welcome Back</h2>
+    <p class="mb-8" style="color:var(--text-muted);">Access your family health center.</p>
+
+    <form id="loginForm" class="flex flex-col gap-5 text-left">
+        <div class="flex flex-col gap-1.5">
+            <label class="text-sm" style="color:var(--text-muted);">Email Address</label>
+            <input id="loginEmail" type="email" placeholder="name@example.com"
+                class="glass-input" required>
+        </div>
+        <div class="flex flex-col gap-1.5">
+            <label class="text-sm" style="color:var(--text-muted);">Password</label>
+            <input id="loginPassword" type="password" placeholder="Password"
+                class="glass-input" required>
+        </div>
+        <div class="flex flex-col gap-1.5">
+            <label class="text-sm" style="color:var(--text-muted);">Log In As</label>
+            <select id="roleSelect" class="glass-input" style="background:#000c24;">
+                <option value="patient">Patient (Elderly)</option>
+                <option value="children">Children (Family Manager)</option>
+                <option value="doctor">Hospital Doctor</option>
+                <option value="hospital-admin">Hospital Admin</option>
+                <option value="diagnostic">Diagnostic Center</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary w-full justify-center mt-2">
+            Sign In <i class="ph ph-sign-in"></i>
+        </button>
+    </form>
+
+    <div id="loginMsg" class="hidden mt-4 text-left"></div>
+
+    <div class="mt-6 pt-6 text-sm" style="border-top:1px solid var(--surface-border); color:var(--text-muted);">
+        Don't have an account?
+        <a href="/signup" class="font-semibold" style="color:var(--primary);">Sign up free</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function showLoginMsg(message, ok) {
+    const el = document.getElementById('loginMsg');
+    el.className = '';
+    el.style.cssText = `display:block; margin-top:1rem; padding:0.85rem 1rem; border-radius:10px;
+        border-left:4px solid ${ok ? 'var(--success)' : 'var(--danger)'};
+        background:${ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)'};
+        color:${ok ? 'var(--success)' : 'var(--danger)'}; font-size:0.9rem;`;
+    el.textContent = message;
+}
+
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const payload = {
+        email:    document.getElementById('loginEmail').value.trim(),
+        password: document.getElementById('loginPassword').value,
+        role:     document.getElementById('roleSelect').value
+    };
+    const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+        showLoginMsg('Login successful. Redirecting...', true);
+        // Store access token for API calls
+        if (data.access_token) localStorage.setItem('cc_token', data.access_token);
+        setTimeout(() => { window.location.href = data.dashboard || '/dashboard/children'; }, 500);
+    } else {
+        showLoginMsg(data.error || 'Login failed. Please check your credentials.', false);
+    }
+});
+</script>
+{% endblock %}
