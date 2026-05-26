@@ -558,14 +558,24 @@ class MessageRepository:
     """Handle all message-related database operations"""
     
     TABLE_NAME = "messages"
-    
+
+    @staticmethod
+    def _room_id(user_a: str, user_b: str) -> str:
+        """Generate a stable room ID from two user names.
+        Sorted so room_id is the same regardless of who calls it first.
+        e.g. room_id("Alice", "Bob") == room_id("Bob", "Alice")
+        """
+        parts = sorted([user_a.strip().lower(), user_b.strip().lower()])
+        return f"{parts[0]}::{parts[1]}"
+
     @staticmethod
     def create_message(message_data: Dict[str, Any] = None, **kwargs) -> Dict[str, Any]:
-        """Create a new message"""
+        """Create a new message scoped to a room"""
         try:
             data = _payload(message_data, **kwargs)
             timestamp, ts = _now()
             message = {
+                "room_id": data.get("room_id") or "global",
                 "sender": data.get("sender") or data.get("sender_id") or "children",
                 "sender_name": data.get("sender_name") or "Unknown",
                 "text": data.get("text") or data.get("message_text") or "",
@@ -577,24 +587,32 @@ class MessageRepository:
         except Exception as e:
             logger.error(f"Error creating message: {e}")
             raise
-    
+
     @staticmethod
-    def get_all_messages(limit: int = 50) -> List[Dict[str, Any]]:
-        """Get recent messages — initial chat load, hard-capped at 50"""
+    def get_all_messages(limit: int = 50, room_id: str = "global") -> List[Dict[str, Any]]:
+        """Get recent messages for a specific room"""
         try:
-            response = _sb().table(MessageRepository.TABLE_NAME).select("*").limit(limit).order("ts", desc=True).execute()
+            response = (
+                _sb().table(MessageRepository.TABLE_NAME)
+                .select("*")
+                .eq("room_id", room_id)
+                .limit(limit)
+                .order("ts", desc=True)
+                .execute()
+            )
             return list(reversed(response.data or []))
         except Exception as e:
             logger.error(f"Error fetching messages: {e}")
             return []
 
     @staticmethod
-    def get_messages_since(since_ts: float, limit: int = 100) -> List[Dict[str, Any]]:
-        """Get messages newer than the given unix timestamp"""
+    def get_messages_since(since_ts: float, room_id: str = "global", limit: int = 100) -> List[Dict[str, Any]]:
+        """Get messages newer than the given unix timestamp for a specific room"""
         try:
             response = (
                 _sb().table(MessageRepository.TABLE_NAME)
                 .select("*")
+                .eq("room_id", room_id)
                 .gt("ts", since_ts)
                 .limit(limit)
                 .order("ts", desc=False)

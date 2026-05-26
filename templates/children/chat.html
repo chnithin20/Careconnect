@@ -55,11 +55,10 @@
 <script>
 const socket = io();
 const ROLE = 'children';
-const SENDER_NAME = '{{ session.get("user", {}).get("full_name") or "Family Member" }}';
-const CONNECTED_DOCTOR = '{{ connected_doctor|default("", true) }}';
+const SENDER_NAME = '{{ sender_name }}';
+const ROOM_ID = '{{ room_id }}';
 let lastTs = 0;
 
-// Prevent XSS by escaping user-supplied content before inserting into DOM
 function escapeHtml(str) {
     const div = document.createElement('div');
     div.appendChild(document.createTextNode(str || ''));
@@ -71,30 +70,26 @@ function renderMessage(msg) {
     const div = document.createElement('div');
     div.dataset.id = msg.id || msg.ts;
     div.style.cssText = `align-self: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 75%; display: flex; flex-direction: column; gap: 0.3rem;`;
-
     const timeStr = new Date(msg.timestamp || msg.created_at).toLocaleTimeString();
-    const safeName = escapeHtml(msg.sender_name);
-    const safeText = escapeHtml(msg.text);
-
     div.innerHTML = `
-        <div style="font-size:0.78rem; color:var(--text-muted); ${isMe ? 'text-align:right;' : ''}">${safeName} &bull; ${timeStr}</div>
+        <div style="font-size:0.78rem; color:var(--text-muted); ${isMe ? 'text-align:right;' : ''}">${escapeHtml(msg.sender_name)} &bull; ${timeStr}</div>
         <div style="padding: 0.9rem 1.2rem; border-radius: 16px; ${isMe
             ? 'background: rgba(59,130,246,0.15); border: 1px solid var(--primary); border-bottom-right-radius: 4px;'
-            : 'background: var(--surface); border-bottom-left-radius: 4px;'} line-height:1.5; font-size:0.97rem;">${safeText}</div>
+            : 'background: var(--surface); border-bottom-left-radius: 4px;'} line-height:1.5; font-size:0.97rem;">${escapeHtml(msg.text)}</div>
     `;
     return div;
 }
 
 async function loadMessages(initial = false) {
-    const url = initial ? '/api/chat/messages' : `/api/chat/messages?since=${lastTs}`;
+    const url = initial
+        ? `/api/chat/messages?room_id=${encodeURIComponent(ROOM_ID)}`
+        : `/api/chat/messages?room_id=${encodeURIComponent(ROOM_ID)}&since=${lastTs}`;
     try {
         const res = await fetch(url);
         const msgs = await res.json();
         if (!msgs || !msgs.length) return;
-
         const box = document.getElementById('chatMessages');
         const wasAtBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 50;
-
         msgs.forEach(msg => {
             const msgId = msg.id || msg.ts;
             if (!document.querySelector(`[data-id="${msgId}"]`)) {
@@ -103,9 +98,7 @@ async function loadMessages(initial = false) {
             }
         });
         if (initial || wasAtBottom) box.scrollTop = box.scrollHeight;
-    } catch (err) {
-        console.error('Error loading messages:', err);
-    }
+    } catch (err) { console.error('Error loading messages:', err); }
 }
 
 async function sendMessage() {
@@ -113,25 +106,19 @@ async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
     input.value = '';
-
     try {
         const res = await fetch('/api/chat/send', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ sender: ROLE, sender_name: SENDER_NAME, text })
+            body: JSON.stringify({ sender: ROLE, sender_name: SENDER_NAME, text, room_id: ROOM_ID })
         });
         const msg = await res.json();
-        // Only update lastTs if the server returned a valid ts value
-        if (msg && msg.ts) {
-            lastTs = Math.max(lastTs, msg.ts);
-        }
-    } catch (err) {
-        console.error('Error sending message:', err);
-    }
+        if (msg && msg.ts) lastTs = Math.max(lastTs, msg.ts);
+    } catch (err) { console.error('Error sending message:', err); }
 }
 
-// Real-time message updates via WebSocket — fires immediately on send (no polling delay)
-socket.on('new_message', (msg) => {
+// Listen only to this room's socket event — not global broadcasts
+socket.on(`new_message_${ROOM_ID}`, (msg) => {
     if (!document.querySelector(`[data-id="${msg.id || msg.ts}"]`)) {
         const box = document.getElementById('chatMessages');
         box.appendChild(renderMessage(msg));
@@ -141,34 +128,20 @@ socket.on('new_message', (msg) => {
 });
 
 document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
-
 loadMessages(true);
 
-// Smart polling: only poll when Socket.IO is disconnected (saves DB calls when WS is working)
-let _socketConnected = false;
 let _pollInterval = null;
-
-function startPolling() {
-    if (_pollInterval) return;
-    _pollInterval = setInterval(() => loadMessages(false), 3000);
-}
-function stopPolling() {
-    if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
-}
+function startPolling() { if (_pollInterval) return; _pollInterval = setInterval(() => loadMessages(false), 3000); }
+function stopPolling()  { if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; } }
 
 socket.on('connect', () => {
-    _socketConnected = true;
     document.getElementById('connectionStatus').textContent = 'Live';
-    stopPolling(); // WS is up — no need to poll
+    stopPolling();
 });
-
 socket.on('disconnect', () => {
-    _socketConnected = false;
     document.getElementById('connectionStatus').textContent = 'Offline';
-    startPolling(); // WS down — fall back to polling
+    startPolling();
 });
-
-// Start polling initially; will be stopped once socket connects
 startPolling();
 </script>
 <style>@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }</style>

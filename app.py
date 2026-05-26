@@ -452,12 +452,20 @@ def children_settings():
 @login_required
 def children_chat():
     session["role"] = "children"
-    # Only fetch the connected doctor name for this user — not all appointments
-    user_name = (session.get("user") or {}).get("full_name", "")
+    user = session.get("user") or {}
+    user_name = user.get("full_name", "")
+    # Get connected doctor name for display
     connected_doctor_name = None
     if user_name:
         connected_doctor_name = AppointmentRepository.get_confirmed_doctor_for_user(user_name)
-    return render_template("children/chat.html", title="Family Chat", connected_doctor=connected_doctor_name)
+    # room_id is stable: sorted combination of children name + "patient"
+    # In a real multi-patient setup this would be children_name::patient_name
+    # For now scope to this user's own conversation
+    room_id = MessageRepository._room_id(user_name, "patient") if user_name else "global"
+    return render_template("children/chat.html", title="Family Chat",
+                           connected_doctor=connected_doctor_name,
+                           room_id=room_id,
+                           sender_name=user_name or "Family Member")
 
 
 # --- Patient Role Routes ---
@@ -473,7 +481,13 @@ def patient_reminders():
 @login_required
 def patient_chat():
     session["role"] = "patient"
-    return render_template("patient/chat.html", title="Family Chat")
+    user = session.get("user") or {}
+    user_name = user.get("full_name", "")
+    # Same room_id formula as children side — sorted so it matches
+    room_id = MessageRepository._room_id(user_name, "patient") if user_name else "global"
+    return render_template("patient/chat.html", title="Family Chat",
+                           room_id=room_id,
+                           sender_name=user_name or "Patient")
 
 
 # --- Doctor Role Routes ---
@@ -784,13 +798,13 @@ def api_auth_me():
 
 @app.route("/api/chat/messages")
 def api_get_messages():
-    # Always filter by since — never dump the full messages table
+    # room_id scopes messages to a specific user pair — never return global messages
+    room_id = request.args.get("room_id") or "global"
     since = float(request.args.get("since", 0))
     if since > 0:
-        msgs = MessageRepository.get_messages_since(since)
+        msgs = MessageRepository.get_messages_since(since, room_id=room_id)
     else:
-        # Initial load: only last 50 messages, not 100
-        msgs = MessageRepository.get_all_messages(limit=50)
+        msgs = MessageRepository.get_all_messages(limit=50, room_id=room_id)
     return jsonify(msgs)
 
 
@@ -800,16 +814,19 @@ def api_send_message():
     sender = body.get("sender", "children")
     sender_name = body.get("sender_name", "Unknown")
     text = body.get("text", "").strip()
+    room_id = body.get("room_id") or "global"
     if not text:
         return jsonify({"error": "Empty message"}), 400
     msg = MessageRepository.create_message(
         sender_id=sender,
         sender_name=sender_name,
         message_text=text,
+        room_id=room_id,
         created_at=datetime.now().isoformat()
     )
     if msg:
-        socketio.emit('new_message', msg, broadcast=True)
+        # Broadcast only to the specific room — not to everyone
+        socketio.emit(f'new_message_{room_id}', msg, broadcast=True)
     return jsonify(msg)
 
 

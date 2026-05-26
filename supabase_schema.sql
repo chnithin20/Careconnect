@@ -131,6 +131,7 @@ CREATE INDEX idx_appointments_status ON appointments(status);
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS messages (
     id BIGSERIAL PRIMARY KEY,
+    room_id VARCHAR(255) NOT NULL DEFAULT 'global', -- scopes chat to a specific user pair
     sender VARCHAR(255) NOT NULL,
     sender_name VARCHAR(255) NOT NULL,
     text TEXT NOT NULL,
@@ -141,6 +142,7 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 -- Create indexes for messages
+CREATE INDEX idx_messages_room_id ON messages(room_id);
 CREATE INDEX idx_messages_sender ON messages(sender);
 CREATE INDEX idx_messages_ts ON messages(ts);
 CREATE INDEX idx_messages_timestamp ON messages(timestamp);
