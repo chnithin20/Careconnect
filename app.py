@@ -205,8 +205,17 @@ def _issue_tokens_and_respond(user: dict, status_code: int = 200):
     )
     return resp
 
-# Initialize Socket.IO for real-time communication
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+# Initialize Socket.IO
+# async_mode='threading' works locally and on Railway/Render.
+# On Vercel (serverless), WebSockets are not supported — Socket.IO
+# gracefully falls back to HTTP long-polling via simple-websocket.
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode='threading',
+    logger=False,
+    engineio_logger=False,
+)
 
 # Configure logging for production feedback
 logging.basicConfig(
