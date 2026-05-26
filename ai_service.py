@@ -10,7 +10,9 @@ import io
 import logging
 import os
 
-import PyPDF2
+# Heavy imports are done lazily inside functions so the module
+# can be imported on Vercel without crashing if a package is missing.
+# PyPDF2 is replaced by pypdf (listed in requirements.txt).
 import requests
 
 logger = logging.getLogger(__name__)
@@ -49,15 +51,18 @@ def is_supported(filename: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def extract_text_from_pdf(file_content: bytes) -> str:
-    """Pull text out of a PDF binary blob."""
+    """Pull text out of a PDF binary blob using pypdf (not PyPDF2)."""
     try:
-        reader = PyPDF2.PdfReader(io.BytesIO(file_content))
-        pages  = []
+        from pypdf import PdfReader          # pypdf is in requirements.txt
+        reader = PdfReader(io.BytesIO(file_content))
+        pages = []
         for page in reader.pages:
             t = page.extract_text()
             if t:
                 pages.append(t)
         return "\n".join(pages).strip()
+    except ImportError:
+        raise ValueError("pypdf is not installed. Add 'pypdf' to requirements.txt.")
     except Exception as e:
         logger.error(f"PDF parse error: {e}")
         raise ValueError(f"Could not extract text from PDF: {e}")
